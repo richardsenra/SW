@@ -3,191 +3,561 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reprocessador em Lote para Bitrix24</title>
+    <title>Starter Workflow - Tupã Dev</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Biblioteca para ler arquivos Excel (.xlsx) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; }
-        @import url('https://rsms.me/inter/inter.css');
-        .tab-btn.active {
-            border-color: #3b82f6;
-            background-color: #3b82f6;
-            color: white;
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
         }
+        
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .tab-btn.active {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: white;
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+        }
+        
         .tab-btn {
-            transition: all 0.2s ease-in-out;
+            transition: all 0.3s ease-in-out;
+            border-radius: 8px;
+            padding: 12px 20px;
+            font-weight: 500;
+        }
+        
+        .tab-btn:hover:not(.active) {
+            background: rgba(59, 130, 246, 0.1);
+            color: #3b82f6;
+        }
+        
+        .floating-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+        
+        .gradient-text {
+            background: linear-gradient(135deg, #f59e0b, #f97316);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .custom-input {
+            transition: all 0.3s ease;
+            border: 2px solid #e5e7eb;
+        }
+        
+        .custom-input:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            transform: translateY(-1px);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.6);
+        }
+        
+        .btn-primary:disabled {
+            background: #9ca3af;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(135deg, #f59e0b, #f97316);
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4);
+        }
+        
+        .btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(245, 158, 11, 0.6);
+        }
+        
+        .progress-glow {
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
+        }
+        
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #f59e0b, #f97316);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 18px;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 8px;
+            animation: pulse 2s infinite;
+        }
+        
+        .status-waiting { background-color: #f59e0b; }
+        .status-processing { background-color: #3b82f6; }
+        .status-success { background-color: #10b981; }
+        .status-error { background-color: #ef4444; }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .modal-backdrop {
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+        }
+        
+        .file-upload-area {
+            border: 2px dashed #d1d5db;
+            transition: all 0.3s ease;
+        }
+        
+        .file-upload-area:hover {
+            border-color: #3b82f6;
+            background-color: rgba(59, 130, 246, 0.05);
+        }
+        
+        .guide-section {
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+        
+        .guide-section::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .guide-section::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 3px;
+        }
+        
+        .guide-section::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+        
+        .guide-section::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
         }
     </style>
 </head>
-<body class="bg-gray-100 text-gray-800">
-
-    <div class="container mx-auto p-4 md:p-8 max-w-5xl">
-        <header class="text-center mb-8">
-            <h1 class="text-3xl font-bold text-gray-700">Reprocessador em Lote para Bitrix24</h1>
-            <p class="text-gray-500 mt-1">Inicie workflows em massa com segurança e controle.</p>
-        </header>
-
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <!-- Coluna de Configurações -->
-            <div class="lg:col-span-1 bg-white p-6 rounded-xl shadow-md border border-gray-200">
-                <h2 class="text-xl font-bold mb-4 border-b pb-2">1. Configurações</h2>
-                <form id="configForm" class="space-y-4">
+<body class="text-gray-800">
+    <div class="min-h-screen py-8 px-4">
+        <div class="container mx-auto max-w-7xl">
+            <!-- Header -->
+            <header class="text-center mb-12">
+                <div class="logo-container justify-center">
+                    <div class="logo-icon">SW</div>
                     <div>
-                        <label for="userName" class="block text-sm font-medium text-gray-700">Seu Nome *</label>
-                        <input type="text" id="userName" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" placeholder="Ex: João Silva" required>
-                    </div>
-                    <div>
-                        <label for="webhookUrl" class="block text-sm font-medium text-gray-700">URL do Webhook *</label>
-                        <input type="url" id="webhookUrl" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" placeholder="https://suaconta.bitrix24.com.br/rest/..." required>
-                    </div>
-                    <div>
-                        <label for="templateId" class="block text-sm font-medium text-gray-700">ID do Template de Workflow *</label>
-                        <input type="text" id="templateId" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" placeholder="Ex: 123" required>
-                    </div>
-                    <div>
-                        <label for="entityType" class="block text-sm font-medium text-gray-700">Tipo da Entidade *</label>
-                        <select id="entityType" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                            <option value="DEAL">Negócio (DEAL)</option>
-                            <option value="LEAD">Lead (LEAD)</option>
-                            <option value="CONTACT">Contato (CONTACT)</option>
-                            <option value="COMPANY">Empresa (COMPANY)</option>
-                        </select>
-                    </div>
-                     <div>
-                        <label for="fileInput" class="block text-sm font-medium text-gray-700">Arquivo com IDs (.xlsx ou .csv) *</label>
-                        <input type="file" id="fileInput" accept=".xlsx, .csv" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" required>
-                        <span id="fileStatus" class="text-xs text-gray-500 mt-1 block"></span>
-                    </div>
-                    <div>
-                        <label for="columnName" class="block text-sm font-medium text-gray-700">Nome da Coluna com IDs *</label>
-                        <input type="text" id="columnName" value="ID" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" required>
-                    </div>
-                     <div>
-                        <label for="skipItems" class="block text-sm font-medium text-gray-700">Pular os Primeiros N Itens</label>
-                        <input type="number" id="skipItems" value="0" min="0" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" placeholder="0">
-                        <p class="text-xs text-gray-500 mt-1">Para continuar um processo que parou.</p>
-                    </div>
-                     <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label for="batchSize" class="block text-sm font-medium text-gray-700">Tamanho do Lote</label>
-                            <input type="number" id="batchSize" value="15" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                        </div>
-                        <div>
-                            <label for="sleepTime" class="block text-sm font-medium text-gray-700">Pausa (segundos)</label>
-                            <input type="number" id="sleepTime" value="2.5" step="0.1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                        </div>
-                    </div>
-                </form>
-            </div>
-
-            <!-- Coluna de Controle e Logs -->
-            <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-md border border-gray-200">
-                <h2 class="text-xl font-bold mb-4 border-b pb-2">2. Controle e Progresso</h2>
-                <div class="space-y-4">
-                    <button id="startButton" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400 flex items-center justify-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-                        Iniciar Processamento
-                    </button>
-
-                    <div id="progressSection" class="hidden">
-                        <div class="flex justify-between mb-1">
-                            <span class="text-base font-medium text-blue-700">Progresso</span>
-                            <span id="progressText" class="text-sm font-medium text-blue-700">0%</span>
-                        </div>
-                        <div class="w-full bg-gray-200 rounded-full h-4">
-                            <div id="progressBar" class="bg-blue-600 h-4 rounded-full transition-all duration-300" style="width: 0%"></div>
-                        </div>
-                         <div class="flex justify-between mt-1 text-xs text-gray-500">
-                             <span id="progressCount">Processados: 0 de 0</span>
-                             <span id="eta">ETA: --:--:--</span>
-                         </div>
+                        <h1 class="text-4xl font-bold gradient-text">Starter Workflow</h1>
+                        <p class="text-white/80 text-sm">Desenvolvido pela Tupã Dev</p>
                     </div>
                 </div>
-
+                <p class="text-white/90 mt-4 text-lg font-medium">Inicie workflows em massa com segurança e controle no Bitrix24</p>
+                
+                <!-- Botão do Guia -->
                 <div class="mt-6">
-                     <div class="border-b border-gray-200">
-                        <nav class="-mb-px flex space-x-2" aria-label="Tabs">
-                            <button id="tabStatusBtn" class="tab-btn active whitespace-nowrap py-3 px-2 border-b-2 font-medium text-sm">Status</button>
-                            <button id="tabSimpleLogsBtn" class="tab-btn whitespace-nowrap py-3 px-2 border-b-2 font-medium text-sm text-gray-500 hover:text-gray-700">Log Simplificado</button>
-                            <button id="tabDetailedLogsBtn" class="tab-btn whitespace-nowrap py-3 px-2 border-b-2 font-medium text-sm text-gray-500 hover:text-gray-700">Log Detalhado</button>
-                        </nav>
-                    </div>
+                    <button id="openGuideBtn" class="btn-secondary text-white font-bold py-3 px-6 rounded-xl transition-all flex items-center justify-center gap-3 mx-auto">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+                            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+                        </svg>
+                        Como Começar - Guia Completo
+                    </button>
+                </div>
+            </header>
 
-                    <div id="statusContent" class="tab-content mt-4 p-4 bg-gray-50 rounded-lg min-h-[200px]">
-                        <p id="statusText" class="text-gray-600">Aguardando início do processo...</p>
-                    </div>
-
-                     <div id="simpleLogsContent" class="tab-content hidden mt-4">
-                        <div class="flex justify-end mb-2">
-                             <button id="downloadSimpleLogsBtn" class="bg-gray-200 text-gray-700 text-xs font-bold py-1 px-3 rounded-lg hover:bg-gray-300 transition-colors disabled:bg-gray-100 disabled:text-gray-400" disabled>
-                                Baixar Log Simplificado
-                            </button>
+            <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
+                <!-- Coluna de Configurações -->
+                <div class="xl:col-span-1">
+                    <div class="floating-card p-8 rounded-2xl">
+                        <div class="flex items-center gap-3 mb-6">
+                            <div class="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg flex items-center justify-center text-white font-bold">1</div>
+                            <h2 class="text-2xl font-bold text-gray-800">Configurações</h2>
                         </div>
-                        <textarea id="simpleLogArea" class="w-full h-56 bg-gray-800 text-cyan-400 font-mono text-xs p-3 rounded-lg border border-gray-600" readonly></textarea>
-                    </div>
-                    
-                    <div id="detailedLogsContent" class="tab-content hidden mt-4">
-                        <div class="flex justify-end mb-2">
-                             <button id="downloadDetailedLogsBtn" class="bg-gray-200 text-gray-700 text-xs font-bold py-1 px-3 rounded-lg hover:bg-gray-300 transition-colors disabled:bg-gray-100 disabled:text-gray-400" disabled>
-                                Baixar Log Detalhado
-                            </button>
-                        </div>
-                        <textarea id="detailedLogArea" class="w-full h-56 bg-gray-900 text-green-400 font-mono text-xs p-3 rounded-lg border border-gray-700" readonly></textarea>
+                        
+                        <form id="configForm" class="space-y-6">
+                            <div>
+                                <label for="userName" class="block text-sm font-semibold text-gray-700 mb-2">Seu Nome *</label>
+                                <input type="text" id="userName" class="custom-input w-full rounded-xl border-2 px-4 py-3 focus:outline-none" placeholder="Ex: João Silva" required>
+                            </div>
+                            
+                            <div>
+                                <label for="webhookUrl" class="block text-sm font-semibold text-gray-700 mb-2">URL do Webhook *</label>
+                                <input type="url" id="webhookUrl" class="custom-input w-full rounded-xl border-2 px-4 py-3 focus:outline-none" placeholder="https://suaconta.bitrix24.com.br/rest/..." required>
+                            </div>
+                            
+                            <div>
+                                <label for="templateId" class="block text-sm font-semibold text-gray-700 mb-2">ID do Template de Workflow *</label>
+                                <input type="text" id="templateId" class="custom-input w-full rounded-xl border-2 px-4 py-3 focus:outline-none" placeholder="Ex: 123" required>
+                            </div>
+                            
+                            <div>
+                                <label for="entityType" class="block text-sm font-semibold text-gray-700 mb-2">Tipo da Entidade *</label>
+                                <select id="entityType" class="custom-input w-full rounded-xl border-2 px-4 py-3 focus:outline-none bg-white">
+                                    <option value="DEAL">Negócio (DEAL)</option>
+                                    <option value="LEAD">Lead (LEAD)</option>
+                                    <option value="CONTACT">Contato (CONTACT)</option>
+                                    <option value="COMPANY">Empresa (COMPANY)</option>
+                                </select>
+                            </div>
+                            
+                            <div>
+                                <label for="fileInput" class="block text-sm font-semibold text-gray-700 mb-2">Arquivo com IDs (.xlsx ou .csv) *</label>
+                                <div class="file-upload-area rounded-xl p-4">
+                                    <input type="file" id="fileInput" accept=".xlsx, .csv" class="w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" required>
+                                </div>
+                                <span id="fileStatus" class="text-xs text-gray-600 mt-2 block font-medium"></span>
+                            </div>
+                            
+                            <div>
+                                <label for="columnName" class="block text-sm font-semibold text-gray-700 mb-2">Nome da Coluna com IDs *</label>
+                                <input type="text" id="columnName" value="ID" class="custom-input w-full rounded-xl border-2 px-4 py-3 focus:outline-none" required>
+                            </div>
+                            
+                            <div>
+                                <label for="skipItems" class="block text-sm font-semibold text-gray-700 mb-2">Pular os Primeiros N Itens</label>
+                                <input type="number" id="skipItems" value="0" min="0" class="custom-input w-full rounded-xl border-2 px-4 py-3 focus:outline-none" placeholder="0">
+                                <p class="text-xs text-gray-500 mt-2">Para continuar um processo que parou.</p>
+                            </div>
+                            
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label for="batchSize" class="block text-sm font-semibold text-gray-700 mb-2">Tamanho do Lote</label>
+                                    <input type="number" id="batchSize" value="15" class="custom-input w-full rounded-xl border-2 px-4 py-3 focus:outline-none">
+                                </div>
+                                <div>
+                                    <label for="sleepTime" class="block text-sm font-semibold text-gray-700 mb-2">Pausa (segundos)</label>
+                                    <input type="number" id="sleepTime" value="2.5" step="0.1" class="custom-input w-full rounded-xl border-2 px-4 py-3 focus:outline-none">
+                                </div>
+                            </div>
+                        </form>
                     </div>
                 </div>
 
+                <!-- Coluna de Controle e Logs -->
+                <div class="xl:col-span-2">
+                    <div class="floating-card p-8 rounded-2xl">
+                        <div class="flex items-center gap-3 mb-6">
+                            <div class="w-8 h-8 bg-gradient-to-r from-green-500 to-blue-500 rounded-lg flex items-center justify-center text-white font-bold">2</div>
+                            <h2 class="text-2xl font-bold text-gray-800">Controle e Progresso</h2>
+                        </div>
+                        
+                        <div class="space-y-6">
+                            <button id="startButton" class="btn-primary w-full text-white font-bold py-4 px-6 rounded-xl transition-all disabled:bg-gray-400 flex items-center justify-center gap-3">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polygon points="5,3 19,12 5,21"></polygon>
+                                </svg>
+                                Iniciar Processamento
+                            </button>
+
+                            <div id="progressSection" class="hidden space-y-4">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-lg font-semibold text-gray-700">Progresso</span>
+                                    <span id="progressText" class="text-lg font-bold text-blue-600">0%</span>
+                                </div>
+                                <div class="w-full bg-gray-200 rounded-full h-6 overflow-hidden">
+                                    <div id="progressBar" class="progress-glow bg-gradient-to-r from-blue-500 to-purple-500 h-6 rounded-full transition-all duration-500" style="width: 0%"></div>
+                                </div>
+                                <div class="flex justify-between text-sm text-gray-600 font-medium">
+                                    <span id="progressCount">Processados: 0 de 0</span>
+                                    <span id="eta">ETA: --:--:--</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-8">
+                            <div class="flex space-x-2 mb-6 bg-gray-100 p-2 rounded-xl">
+                                <button id="tabStatusBtn" class="tab-btn active flex-1 text-center">Status</button>
+                                <button id="tabSimpleLogsBtn" class="tab-btn flex-1 text-center">Log Simplificado</button>
+                                <button id="tabDetailedLogsBtn" class="tab-btn flex-1 text-center">Log Detalhado</button>
+                            </div>
+
+                            <div id="statusContent" class="tab-content p-6 bg-gray-50 rounded-xl min-h-[300px]">
+                                <div class="flex items-center">
+                                    <span id="statusIndicator" class="status-indicator status-waiting"></span>
+                                    <p id="statusText" class="text-gray-700 font-medium">Aguardando início do processo...</p>
+                                </div>
+                            </div>
+
+                            <div id="simpleLogsContent" class="tab-content hidden">
+                                <div class="flex justify-end mb-3">
+                                    <button id="downloadSimpleLogsBtn" class="bg-gray-200 text-gray-700 text-sm font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors disabled:bg-gray-100 disabled:text-gray-400" disabled>
+                                        📥 Baixar Log Simplificado
+                                    </button>
+                                </div>
+                                <textarea id="simpleLogArea" class="w-full h-80 bg-gray-900 text-cyan-400 font-mono text-sm p-4 rounded-xl border-0 resize-none" readonly placeholder="Logs aparecerão aqui..."></textarea>
+                            </div>
+                            
+                            <div id="detailedLogsContent" class="tab-content hidden">
+                                <div class="flex justify-end mb-3">
+                                    <button id="downloadDetailedLogsBtn" class="bg-gray-200 text-gray-700 text-sm font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors disabled:bg-gray-100 disabled:text-gray-400" disabled>
+                                        📥 Baixar Log Detalhado
+                                    </button>
+                                </div>
+                                <textarea id="detailedLogArea" class="w-full h-80 bg-gray-900 text-green-400 font-mono text-sm p-4 rounded-xl border-0 resize-none" readonly placeholder="Logs detalhados aparecerão aqui..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Modal do Guia -->
+        <div id="guideModal" class="hidden fixed inset-0 modal-backdrop overflow-y-auto h-full w-full flex items-center justify-center z-50">
+            <div class="floating-card p-8 rounded-2xl max-w-4xl mx-4 transform transition-all">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-3xl font-bold text-gray-800">Guia de Utilização</h2>
+                    <button id="closeGuideBtn" class="text-gray-500 hover:text-gray-700 text-2xl font-bold">×</button>
+                </div>
+                
+                <div class="guide-section">
+                    <div class="space-y-6">
+                        <!-- Proposta da Ferramenta -->
+                        <section class="bg-blue-50 p-6 rounded-xl">
+                            <h3 class="text-xl font-bold text-blue-800 mb-4">📋 Qual a proposta da ferramenta?</h3>
+                            <p class="text-gray-700 leading-relaxed">
+                                A proposta é permitir que qualquer usuário, mesmo sem conhecimento técnico, possa iniciar um processo de negócio (workflow) do Bitrix24 para uma grande quantidade de itens (Leads, Negócios, etc.) de uma só vez, a partir de uma simples planilha.
+                            </p>
+                            <p class="text-gray-700 leading-relaxed mt-3">
+                                Ela foi criada para ser segura, evitando os erros mais comuns de sobrecarga da API do Bitrix24 e fornecendo logs detalhados para auditoria e depuração.
+                            </p>
+                        </section>
+
+                        <!-- Explicando os Campos -->
+                        <section>
+                            <h3 class="text-xl font-bold text-gray-800 mb-4">🔧 Explicando os Campos</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div class="bg-gray-50 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-gray-800 mb-2">Seu Nome</h4>
+                                    <p class="text-sm text-gray-600">Usado para registrar quem realizou a operação. Aparecerá na primeira linha dos logs.</p>
+                                </div>
+                                <div class="bg-gray-50 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-gray-800 mb-2">URL do Webhook</h4>
+                                    <p class="text-sm text-gray-600">É a "ponte" de comunicação com a sua conta Bitrix24. Deve ter, no mínimo, a permissão de "Workflows (bizproc)".</p>
+                                </div>
+                                <div class="bg-gray-50 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-gray-800 mb-2">ID do Template de Workflow</h4>
+                                    <p class="text-sm text-gray-600">É o número de identificação do processo de negócio que você quer executar para cada item da lista.</p>
+                                </div>
+                                <div class="bg-gray-50 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-gray-800 mb-2">Tipo da Entidade</h4>
+                                    <p class="text-sm text-gray-600">O módulo do Bitrix24 onde o workflow será executado (Negócios, Leads, Contatos ou Empresas).</p>
+                                </div>
+                                <div class="bg-gray-50 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-gray-800 mb-2">Arquivo com IDs</h4>
+                                    <p class="text-sm text-gray-600">Onde você carrega sua planilha (.xlsx ou .csv) contendo a lista de IDs.</p>
+                                </div>
+                                <div class="bg-gray-50 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-gray-800 mb-2">Nome da Coluna com IDs</h4>
+                                    <p class="text-sm text-gray-600">O nome exato da coluna na sua planilha onde estão os IDs (o padrão é "ID").</p>
+                                </div>
+                                <div class="bg-gray-50 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-gray-800 mb-2">Pular os Primeiros N Itens</h4>
+                                    <p class="text-sm text-gray-600">Permite continuar um trabalho que parou. Se um processo rodou 500 itens e deu erro, você pode colocar "500" aqui.</p>
+                                </div>
+                                <div class="bg-gray-50 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-gray-800 mb-2">Tamanho do Lote vs. Pausa</h4>
+                                    <p class="text-sm text-gray-600">Os dois controles de carga mais importantes para evitar sobrecarga da API.</p>
+                                </div>
+                            </div>
+                        </section>
+
+                        <!-- Configuração de Carga -->
+                        <section>
+                            <h3 class="text-xl font-bold text-gray-800 mb-4">⚙️ Entendendo a Configuração de Carga</h3>
+                            <div class="bg-yellow-50 p-6 rounded-xl">
+                                <p class="text-gray-700 mb-4">
+                                    O Bitrix24 tem limites de processamento. Se você enviar muitas tarefas ao mesmo tempo, ele pode recusar ou falhar. Pense nisso como um caixa de supermercado:
+                                </p>
+                                <ul class="space-y-2 text-gray-700">
+                                    <li><strong>Tamanho do Lote:</strong> É a quantidade de produtos que você coloca na esteira de uma vez.</li>
+                                    <li><strong>Pausa (sleep):</strong> É o tempo que você espera antes de colocar um novo grupo de produtos na esteira.</li>
+                                </ul>
+                                <p class="text-gray-700 mt-4 font-medium">
+                                    O objetivo é encontrar o equilíbrio para não sobrecarregar o caixa (o servidor do Bitrix24).
+                                </p>
+                            </div>
+                        </section>
+
+                        <!-- Categorias de Workflow -->
+                        <section>
+                            <h3 class="text-xl font-bold text-gray-800 mb-4">📊 Categorias de Workflow e Configurações</h3>
+                            
+                            <!-- Workflow Básico -->
+                            <div class="mb-6 border border-green-200 rounded-xl p-6 bg-green-50">
+                                <h4 class="text-lg font-bold text-green-800 mb-3">🟢 Workflow BÁSICO</h4>
+                                <p class="text-gray-700 mb-3"><strong>O que é:</strong> Um processo que realiza poucas ações e que não depende de serviços externos.</p>
+                                <div class="mb-4">
+                                    <strong class="text-gray-800">Exemplos:</strong>
+                                    <ul class="list-disc list-inside ml-4 text-gray-600 mt-1">
+                                        <li>Mudar o estágio de um card</li>
+                                        <li>Alterar o nome de um negócio/lead</li>
+                                        <li>Adicionar um comentário simples</li>
+                                        <li>Preencher um ou dois campos</li>
+                                    </ul>
+                                </div>
+                                <div class="bg-white p-4 rounded-lg">
+                                    <strong class="text-green-800">Configuração Recomendada:</strong>
+                                    <div class="grid grid-cols-2 gap-4 mt-2">
+                                        <div>
+                                            <span class="font-medium">Tamanho do Lote:</span>
+                                            <span class="text-green-700 font-bold">40 a 50</span>
+                                        </div>
+                                        <div>
+                                            <span class="font-medium">Pausa (segundos):</span>
+                                            <span class="text-green-700 font-bold">0.5 a 1.0</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Workflow Médio -->
+                            <div class="mb-6 border border-yellow-200 rounded-xl p-6 bg-yellow-50">
+                                <h4 class="text-lg font-bold text-yellow-800 mb-3">🟡 Workflow MÉDIO</h4>
+                                <p class="text-gray-700 mb-3"><strong>O que é:</strong> Um processo que envolve algumas ações, lógica condicional ou uma única chamada para um webhook externo.</p>
+                                <div class="mb-4">
+                                    <strong class="text-gray-800">Exemplos:</strong>
+                                    <ul class="list-disc list-inside ml-4 text-gray-600 mt-1">
+                                        <li>Criar uma ou duas tarefas para um usuário</li>
+                                        <li>Enviar uma notificação</li>
+                                        <li>Disparar um webhook para um fluxo simples no n8n</li>
+                                        <li>Modificar vários campos e adicionar comentários</li>
+                                    </ul>
+                                </div>
+                                <div class="bg-white p-4 rounded-lg">
+                                    <strong class="text-yellow-800">Configuração Recomendada:</strong>
+                                    <div class="grid grid-cols-2 gap-4 mt-2">
+                                        <div>
+                                            <span class="font-medium">Tamanho do Lote:</span>
+                                            <span class="text-yellow-700 font-bold">20 a 30</span>
+                                        </div>
+                                        <div>
+                                            <span class="font-medium">Pausa (segundos):</span>
+                                            <span class="text-yellow-700 font-bold">1.5 a 2.0</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Workflow Complexo -->
+                            <div class="mb-6 border border-red-200 rounded-xl p-6 bg-red-50">
+                                <h4 class="text-lg font-bold text-red-800 mb-3">🔴 Workflow COMPLEXO</h4>
+                                <p class="text-gray-700 mb-3"><strong>O que é:</strong> Um processo longo, com muitas etapas, pausas, ou que depende de várias chamadas a sistemas externos.</p>
+                                <div class="mb-4">
+                                    <strong class="text-gray-800">Exemplos:</strong>
+                                    <ul class="list-disc list-inside ml-4 text-gray-600 mt-1">
+                                        <li>Workflows que chamam n8n/Make que consultam outras APIs</li>
+                                        <li>Processos com pausas internas ("wait")</li>
+                                        <li>Processos que criam várias entidades</li>
+                                        <li>Loops ou iterações dentro do workflow</li>
+                                    </ul>
+                                </div>
+                                <div class="bg-white p-4 rounded-lg">
+                                    <strong class="text-red-800">Configuração Recomendada (mais segura):</strong>
+                                    <div class="grid grid-cols-2 gap-4 mt-2">
+                                        <div>
+                                            <span class="font-medium">Tamanho do Lote:</span>
+                                            <span class="text-red-700 font-bold">5 a 15</span>
+                                        </div>
+                                        <div>
+                                            <span class="font-medium">Pausa (segundos):</span>
+                                            <span class="text-red-700 font-bold">2.5 ou mais</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        <!-- Conclusão -->
+                        <section class="bg-blue-50 p-6 rounded-xl">
+                            <h3 class="text-xl font-bold text-blue-800 mb-4">💡 Conclusão</h3>
+                            <p class="text-gray-700 leading-relaxed">
+                                Na dúvida, comece sempre pela configuração mais segura (a de workflow complexo). É melhor que o processo demore um pouco mais e termine com sucesso do que ele parar no meio por um erro de sobrecarga. Use os logs para monitorar o comportamento e otimize os parâmetros conforme se sentir confortável.
+                            </p>
+                        </section>
+                    </div>
+                </div>
             </div>
         </div>
         
         <!-- Modal de Erro de Tempo Limite -->
-        <div id="timeLimitErrorModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center z-50">
-            <div class="bg-white p-8 rounded-lg shadow-xl max-w-md mx-auto">
+        <div id="timeLimitErrorModal" class="hidden fixed inset-0 modal-backdrop overflow-y-auto h-full w-full flex items-center justify-center z-50">
+            <div class="floating-card p-8 rounded-2xl max-w-md mx-4 transform transition-all">
                 <div class="text-center">
-                    <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
-                        <svg class="h-6 w-6 text-red-600" stroke="currentColor" fill="none" viewBox="0 0 24 24">
+                    <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-100 mb-4">
+                        <svg class="h-8 w-8 text-red-600" stroke="currentColor" fill="none" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
                         </svg>
                     </div>
-                    <h3 class="text-lg leading-6 font-medium text-gray-900 mt-4">Processo Interrompido</h3>
-                    <div class="mt-2 px-7 py-3">
-                        <p class="text-sm text-gray-500">
-                            Ocorreu um erro crítico de <b class="text-red-600">'OPERATION_TIME_LIMIT'</b>. O processo foi parado para evitar falhas. Verifique os logs, ajuste o 'Tamanho do Lote' para um valor menor e tente novamente.
+                    <h3 class="text-xl font-bold text-gray-900 mb-4">Processo Interrompido</h3>
+                    <div class="mb-6">
+                        <p class="text-gray-600 leading-relaxed">
+                            Ocorreu um erro crítico de <strong class="text-red-600">'OPERATION_TIME_LIMIT'</strong>. O processo foi parado para evitar falhas. Verifique os logs, ajuste o 'Tamanho do Lote' para um valor menor e tente novamente.
                         </p>
                     </div>
-                    <div class="mt-4">
-                        <button id="closeTimeLimitErrorModal" class="px-4 py-2 bg-red-600 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500">
-                            Entendido
-                        </button>
-                    </div>
+                    <button id="closeTimeLimitErrorModal" class="w-full px-6 py-3 bg-red-600 text-white font-semibold rounded-xl hover:bg-red-700 transition-colors">
+                        Entendido
+                    </button>
                 </div>
             </div>
         </div>
 
         <!-- Modal de Erro de Permissão -->
-        <div id="scopeErrorModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center z-50">
-            <div class="bg-white p-8 rounded-lg shadow-xl max-w-md mx-auto">
+        <div id="scopeErrorModal" class="hidden fixed inset-0 modal-backdrop overflow-y-auto h-full w-full flex items-center justify-center z-50">
+            <div class="floating-card p-8 rounded-2xl max-w-md mx-4 transform transition-all">
                 <div class="text-center">
-                    <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-yellow-100">
-                         <svg class="h-6 w-6 text-yellow-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-yellow-100 mb-4">
+                        <svg class="h-8 w-8 text-yellow-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 10.5V6.75a4.5 4.5 0 1 1 9 0v3.75M3.75 21.75h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H3.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
                         </svg>
                     </div>
-                    <h3 class="text-lg leading-6 font-medium text-gray-900 mt-4">Permissão Insuficiente</h3>
-                    <div class="mt-2 px-7 py-3">
-                        <p class="text-sm text-gray-500">
-                            O webhook não tem a permissão <b class="text-yellow-700">'Workflows' (bizproc)</b>. Por favor, edite o webhook no Bitrix24, adicione essa permissão e tente novamente.
+                    <h3 class="text-xl font-bold text-gray-900 mb-4">Permissão Insuficiente</h3>
+                    <div class="mb-6">
+                        <p class="text-gray-600 leading-relaxed">
+                            O webhook não tem a permissão <strong class="text-yellow-700">'Workflows' (bizproc)</strong>. Por favor, edite o webhook no Bitrix24, adicione essa permissão e tente novamente.
                         </p>
                     </div>
-                    <div class="mt-4">
-                        <button id="closeScopeErrorModal" class="px-4 py-2 bg-yellow-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-500">
-                            Entendido
-                        </button>
-                    </div>
+                    <button id="closeScopeErrorModal" class="w-full px-6 py-3 bg-yellow-500 text-white font-semibold rounded-xl hover:bg-yellow-600 transition-colors">
+                        Entendido
+                    </button>
                 </div>
             </div>
         </div>
-
     </div>
 
     <script>
@@ -210,6 +580,7 @@
         const simpleLogsContent = document.getElementById('simpleLogsContent');
         const detailedLogsContent = document.getElementById('detailedLogsContent');
         const statusText = document.getElementById('statusText');
+        const statusIndicator = document.getElementById('statusIndicator');
         const simpleLogArea = document.getElementById('simpleLogArea');
         const detailedLogArea = document.getElementById('detailedLogArea');
         const downloadSimpleLogsBtn = document.getElementById('downloadSimpleLogsBtn');
@@ -219,6 +590,11 @@
         const closeTimeLimitErrorModal = document.getElementById('closeTimeLimitErrorModal');
         const scopeErrorModal = document.getElementById('scopeErrorModal');
         const closeScopeErrorModal = document.getElementById('closeScopeErrorModal');
+        
+        // Elementos do Guia
+        const openGuideBtn = document.getElementById('openGuideBtn');
+        const guideModal = document.getElementById('guideModal');
+        const closeGuideBtn = document.getElementById('closeGuideBtn');
 
         // --- Variáveis de Estado ---
         let idsToProcess = [];
@@ -229,6 +605,10 @@
         let startTime = null;
 
         // --- Funções Auxiliares ---
+        function updateStatusIndicator(status) {
+            statusIndicator.className = `status-indicator status-${status}`;
+        }
+
         function logMessage(message, level = 'INFO', details = {}) {
             const timestamp = new Date().toLocaleTimeString('pt-BR');
             const simpleLogEntry = `[${timestamp}] [${level}] ${message}`;
@@ -306,7 +686,8 @@
                 return;
             }
             
-            fileStatus.textContent = `Lendo '${file.name}'...`;
+            fileStatus.textContent = `📖 Lendo '${file.name}'...`;
+            fileStatus.className = 'text-xs text-blue-600 mt-2 block font-medium';
             const reader = new FileReader();
 
             reader.onload = (e) => {
@@ -322,16 +703,19 @@
                     }
                     
                     idsToProcess = json.map(row => row[columnName]).filter(id => id !== null && id !== undefined).map(String);
-                    fileStatus.textContent = `✅ ${idsToProcess.length} IDs carregados de '${file.name}'.`;
+                    fileStatus.textContent = `✅ ${idsToProcess.length} IDs carregados de '${file.name}'`;
+                    fileStatus.className = 'text-xs text-green-600 mt-2 block font-medium';
                 } catch (err) {
                     fileStatus.textContent = `❌ Erro ao ler o arquivo: ${err.message}`;
+                    fileStatus.className = 'text-xs text-red-600 mt-2 block font-medium';
                     idsToProcess = [];
                 }
             };
             
             reader.onerror = () => {
-                 fileStatus.textContent = `❌ Erro ao ler o arquivo.`;
-                 idsToProcess = [];
+                fileStatus.textContent = `❌ Erro ao ler o arquivo.`;
+                fileStatus.className = 'text-xs text-red-600 mt-2 block font-medium';
+                idsToProcess = [];
             };
 
             reader.readAsArrayBuffer(file);
@@ -384,6 +768,7 @@
             downloadDetailedLogsBtn.disabled = false;
             progressSection.classList.remove('hidden');
             startTime = Date.now();
+            updateStatusIndicator('processing');
             
             const entityType = document.getElementById('entityType').value;
             const batchSize = parseInt(document.getElementById('batchSize').value);
@@ -402,6 +787,7 @@
                 if (stopProcess) {
                     logMessage('Processo interrompido pelo sistema devido a erro crítico.', 'CRITICAL');
                     statusText.textContent = "Processo Interrompido por Erro Crítico.";
+                    updateStatusIndicator('error');
                     break;
                 }
 
@@ -436,10 +822,12 @@
                     if (resultString.includes('insufficient_scope')) {
                         logMessage('ERRO CRÍTICO: Permissões insuficientes (insufficient_scope). O webhook precisa da permissão "Workflows" (bizproc).', 'CRITICAL', { payload, response: result });
                         stopProcess = true;
+                        updateStatusIndicator('error');
                         scopeErrorModal.classList.remove('hidden');
                     } else if (resultString.includes('OPERATION_TIME_LIMIT')) {
                         logMessage('ERRO CRÍTICO: OPERATION_TIME_LIMIT detectado. O processo será interrompido.', 'CRITICAL', { payload, response: result });
                         stopProcess = true;
+                        updateStatusIndicator('error');
                         timeLimitErrorModal.classList.remove('hidden');
                     } else if (result.result && result.result.result_error && Object.keys(result.result.result_error).length > 0) {
                          logMessage(`Erros retornados no lote ${batchNumber}.`, 'WARN', { payload, response: result });
@@ -450,6 +838,7 @@
                 } catch (err) {
                     logMessage(`Falha ao enviar o lote ${batchNumber}: ${err.message}`, 'ERROR', { payload });
                     statusText.textContent = `Erro de conexão no lote ${batchNumber}.`;
+                    updateStatusIndicator('error');
                 }
 
                 processedCount += batchIds.length;
@@ -459,7 +848,8 @@
             }
 
             if (!stopProcess) {
-                statusText.textContent = "Processamento concluído!";
+                statusText.textContent = "Processamento concluído com sucesso! 🎉";
+                updateStatusIndicator('success');
                 logMessage('Todos os lotes foram enviados.', 'SYSTEM');
             }
             toggleForm(true);
@@ -501,6 +891,24 @@
             scopeErrorModal.classList.add('hidden');
         });
 
+        // Eventos do Guia
+        openGuideBtn.addEventListener('click', () => {
+            guideModal.classList.remove('hidden');
+        });
+
+        closeGuideBtn.addEventListener('click', () => {
+            guideModal.classList.add('hidden');
+        });
+
+        // Fechar modal clicando fora
+        guideModal.addEventListener('click', (e) => {
+            if (e.target === guideModal) {
+                guideModal.classList.add('hidden');
+            }
+        });
+
+        // Inicializar status
+        updateStatusIndicator('waiting');
     </script>
 </body>
 </html>
