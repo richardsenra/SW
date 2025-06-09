@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reprocessador em Lote para Bitrix24</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Biblioteca para ler arquivos Excel (.xlsx) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        @import url('https://rsms.me/inter/inter.css');
+        .tab-btn.active {
+            border-color: #3b82f6;
+            background-color: #3b82f6;
+            color: white;
+        }
+        .tab-btn {
+            transition: all 0.2s ease-in-out;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+    <div class="container mx-auto p-4 md:p-8 max-w-5xl">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-gray-700">Reprocessador em Lote para Bitrix24</h1>
+            <p class="text-gray-500 mt-1">Inicie workflows em massa com segurança e controle.</p>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Coluna de Configurações -->
+            <div class="lg:col-span-1 bg-white p-6 rounded-xl shadow-md border border-gray-200">
+                <h2 class="text-xl font-bold mb-4 border-b pb-2">1. Configurações</h2>
+                <form id="configForm" class="space-y-4">
+                    <div>
+                        <label for="userName" class="block text-sm font-medium text-gray-700">Seu Nome *</label>
+                        <input type="text" id="userName" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" placeholder="Ex: João Silva" required>
+                    </div>
+                    <div>
+                        <label for="webhookUrl" class="block text-sm font-medium text-gray-700">URL do Webhook *</label>
+                        <input type="url" id="webhookUrl" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" placeholder="https://suaconta.bitrix24.com.br/rest/..." required>
+                    </div>
+                    <div>
+                        <label for="templateId" class="block text-sm font-medium text-gray-700">ID do Template de Workflow *</label>
+                        <input type="text" id="templateId" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" placeholder="Ex: 123" required>
+                    </div>
+                    <div>
+                        <label for="entityType" class="block text-sm font-medium text-gray-700">Tipo da Entidade *</label>
+                        <select id="entityType" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                            <option value="DEAL">Negócio (DEAL)</option>
+                            <option value="LEAD">Lead (LEAD)</option>
+                            <option value="CONTACT">Contato (CONTACT)</option>
+                            <option value="COMPANY">Empresa (COMPANY)</option>
+                        </select>
+                    </div>
+                     <div>
+                        <label for="fileInput" class="block text-sm font-medium text-gray-700">Arquivo com IDs (.xlsx ou .csv) *</label>
+                        <input type="file" id="fileInput" accept=".xlsx, .csv" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" required>
+                        <span id="fileStatus" class="text-xs text-gray-500 mt-1 block"></span>
+                    </div>
+                    <div>
+                        <label for="columnName" class="block text-sm font-medium text-gray-700">Nome da Coluna com IDs *</label>
+                        <input type="text" id="columnName" value="ID" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" required>
+                    </div>
+                     <div>
+                        <label for="skipItems" class="block text-sm font-medium text-gray-700">Pular os Primeiros N Itens</label>
+                        <input type="number" id="skipItems" value="0" min="0" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" placeholder="0">
+                        <p class="text-xs text-gray-500 mt-1">Para continuar um processo que parou.</p>
+                    </div>
+                     <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label for="batchSize" class="block text-sm font-medium text-gray-700">Tamanho do Lote</label>
+                            <input type="number" id="batchSize" value="15" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label for="sleepTime" class="block text-sm font-medium text-gray-700">Pausa (segundos)</label>
+                            <input type="number" id="sleepTime" value="2.5" step="0.1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Coluna de Controle e Logs -->
+            <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-md border border-gray-200">
+                <h2 class="text-xl font-bold mb-4 border-b pb-2">2. Controle e Progresso</h2>
+                <div class="space-y-4">
+                    <button id="startButton" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400 flex items-center justify-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                        Iniciar Processamento
+                    </button>
+
+                    <div id="progressSection" class="hidden">
+                        <div class="flex justify-between mb-1">
+                            <span class="text-base font-medium text-blue-700">Progresso</span>
+                            <span id="progressText" class="text-sm font-medium text-blue-700">0%</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-4">
+                            <div id="progressBar" class="bg-blue-600 h-4 rounded-full transition-all duration-300" style="width: 0%"></div>
+                        </div>
+                         <div class="flex justify-between mt-1 text-xs text-gray-500">
+                             <span id="progressCount">Processados: 0 de 0</span>
+                             <span id="eta">ETA: --:--:--</span>
+                         </div>
+                    </div>
+                </div>
+
+                <div class="mt-6">
+                     <div class="border-b border-gray-200">
+                        <nav class="-mb-px flex space-x-2" aria-label="Tabs">
+                            <button id="tabStatusBtn" class="tab-btn active whitespace-nowrap py-3 px-2 border-b-2 font-medium text-sm">Status</button>
+                            <button id="tabSimpleLogsBtn" class="tab-btn whitespace-nowrap py-3 px-2 border-b-2 font-medium text-sm text-gray-500 hover:text-gray-700">Log Simplificado</button>
+                            <button id="tabDetailedLogsBtn" class="tab-btn whitespace-nowrap py-3 px-2 border-b-2 font-medium text-sm text-gray-500 hover:text-gray-700">Log Detalhado</button>
+                        </nav>
+                    </div>
+
+                    <div id="statusContent" class="tab-content mt-4 p-4 bg-gray-50 rounded-lg min-h-[200px]">
+                        <p id="statusText" class="text-gray-600">Aguardando início do processo...</p>
+                    </div>
+
+                     <div id="simpleLogsContent" class="tab-content hidden mt-4">
+                        <div class="flex justify-end mb-2">
+                             <button id="downloadSimpleLogsBtn" class="bg-gray-200 text-gray-700 text-xs font-bold py-1 px-3 rounded-lg hover:bg-gray-300 transition-colors disabled:bg-gray-100 disabled:text-gray-400" disabled>
+                                Baixar Log Simplificado
+                            </button>
+                        </div>
+                        <textarea id="simpleLogArea" class="w-full h-56 bg-gray-800 text-cyan-400 font-mono text-xs p-3 rounded-lg border border-gray-600" readonly></textarea>
+                    </div>
+                    
+                    <div id="detailedLogsContent" class="tab-content hidden mt-4">
+                        <div class="flex justify-end mb-2">
+                             <button id="downloadDetailedLogsBtn" class="bg-gray-200 text-gray-700 text-xs font-bold py-1 px-3 rounded-lg hover:bg-gray-300 transition-colors disabled:bg-gray-100 disabled:text-gray-400" disabled>
+                                Baixar Log Detalhado
+                            </button>
+                        </div>
+                        <textarea id="detailedLogArea" class="w-full h-56 bg-gray-900 text-green-400 font-mono text-xs p-3 rounded-lg border border-gray-700" readonly></textarea>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+        
+        <!-- Modal de Erro de Tempo Limite -->
+        <div id="timeLimitErrorModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center z-50">
+            <div class="bg-white p-8 rounded-lg shadow-xl max-w-md mx-auto">
+                <div class="text-center">
+                    <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
+                        <svg class="h-6 w-6 text-red-600" stroke="currentColor" fill="none" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-lg leading-6 font-medium text-gray-900 mt-4">Processo Interrompido</h3>
+                    <div class="mt-2 px-7 py-3">
+                        <p class="text-sm text-gray-500">
+                            Ocorreu um erro crítico de <b class="text-red-600">'OPERATION_TIME_LIMIT'</b>. O processo foi parado para evitar falhas. Verifique os logs, ajuste o 'Tamanho do Lote' para um valor menor e tente novamente.
+                        </p>
+                    </div>
+                    <div class="mt-4">
+                        <button id="closeTimeLimitErrorModal" class="px-4 py-2 bg-red-600 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500">
+                            Entendido
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal de Erro de Permissão -->
+        <div id="scopeErrorModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center z-50">
+            <div class="bg-white p-8 rounded-lg shadow-xl max-w-md mx-auto">
+                <div class="text-center">
+                    <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-yellow-100">
+                         <svg class="h-6 w-6 text-yellow-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 10.5V6.75a4.5 4.5 0 1 1 9 0v3.75M3.75 21.75h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H3.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
+                        </svg>
+                    </div>
+                    <h3 class="text-lg leading-6 font-medium text-gray-900 mt-4">Permissão Insuficiente</h3>
+                    <div class="mt-2 px-7 py-3">
+                        <p class="text-sm text-gray-500">
+                            O webhook não tem a permissão <b class="text-yellow-700">'Workflows' (bizproc)</b>. Por favor, edite o webhook no Bitrix24, adicione essa permissão e tente novamente.
+                        </p>
+                    </div>
+                    <div class="mt-4">
+                        <button id="closeScopeErrorModal" class="px-4 py-2 bg-yellow-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-yellow-500">
+                            Entendido
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // --- Referências aos Elementos do DOM ---
+        const configForm = document.getElementById('configForm');
+        const startButton = document.getElementById('startButton');
+        const fileInput = document.getElementById('fileInput');
+        const fileStatus = document.getElementById('fileStatus');
+        
+        const progressSection = document.getElementById('progressSection');
+        const progressBar = document.getElementById('progressBar');
+        const progressText = document.getElementById('progressText');
+        const progressCount = document.getElementById('progressCount');
+        const eta = document.getElementById('eta');
+
+        const tabStatusBtn = document.getElementById('tabStatusBtn');
+        const tabSimpleLogsBtn = document.getElementById('tabSimpleLogsBtn');
+        const tabDetailedLogsBtn = document.getElementById('tabDetailedLogsBtn');
+        const statusContent = document.getElementById('statusContent');
+        const simpleLogsContent = document.getElementById('simpleLogsContent');
+        const detailedLogsContent = document.getElementById('detailedLogsContent');
+        const statusText = document.getElementById('statusText');
+        const simpleLogArea = document.getElementById('simpleLogArea');
+        const detailedLogArea = document.getElementById('detailedLogArea');
+        const downloadSimpleLogsBtn = document.getElementById('downloadSimpleLogsBtn');
+        const downloadDetailedLogsBtn = document.getElementById('downloadDetailedLogsBtn');
+
+        const timeLimitErrorModal = document.getElementById('timeLimitErrorModal');
+        const closeTimeLimitErrorModal = document.getElementById('closeTimeLimitErrorModal');
+        const scopeErrorModal = document.getElementById('scopeErrorModal');
+        const closeScopeErrorModal = document.getElementById('closeScopeErrorModal');
+
+        // --- Variáveis de Estado ---
+        let idsToProcess = [];
+        let isRunning = false;
+        let stopProcess = false;
+        let simpleLogs = [];
+        let detailedLogs = [];
+        let startTime = null;
+
+        // --- Funções Auxiliares ---
+        function logMessage(message, level = 'INFO', details = {}) {
+            const timestamp = new Date().toLocaleTimeString('pt-BR');
+            const simpleLogEntry = `[${timestamp}] [${level}] ${message}`;
+            simpleLogs.push(simpleLogEntry);
+            simpleLogArea.value = simpleLogs.join('\n');
+            simpleLogArea.scrollTop = simpleLogArea.scrollHeight;
+
+            let detailedLogEntry = `${simpleLogEntry}\n`;
+            if (details.payload) {
+                detailedLogEntry += `  -> PAYLOAD ENVIADO:\n${JSON.stringify(details.payload, null, 2)}\n`;
+            }
+            if (details.response) {
+                detailedLogEntry += `  <- RESPOSTA RECEBIDA:\n${JSON.stringify(details.response, null, 2)}\n`;
+            }
+            detailedLogEntry += '----------------------------------------------------------\n';
+            detailedLogs.push(detailedLogEntry);
+            detailedLogArea.value = detailedLogs.join('');
+            detailedLogArea.scrollTop = detailedLogArea.scrollHeight;
+        }
+
+        function formatEta(seconds) {
+            if (seconds === Infinity || isNaN(seconds) || seconds < 0) {
+                return '--:--:--';
+            }
+            const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
+            const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
+            const s = Math.floor(seconds % 60).toString().padStart(2, '0');
+            return `${h}:${m}:${s}`;
+        }
+        
+        function updateProgress(processed, total) {
+            if (total === 0) return;
+            const percentage = Math.round((processed / total) * 100);
+            progressBar.style.width = `${percentage}%`;
+            progressText.innerText = `${percentage}%`;
+            progressCount.innerText = `Processados: ${processed} de ${total}`;
+
+            if (processed > 0 && startTime) {
+                const elapsedTime = (Date.now() - startTime) / 1000;
+                const timePerItem = elapsedTime / processed;
+                const remainingItems = total - processed;
+                const remainingTime = remainingItems * timePerItem;
+                eta.innerText = `ETA: ${formatEta(remainingTime)}`;
+            }
+        }
+        
+        function toggleForm(enabled) {
+            Array.from(configForm.elements).forEach(el => el.disabled = !enabled);
+            startButton.disabled = !enabled;
+            isRunning = !enabled;
+        }
+        
+        function switchTab(activeTab) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.add('hidden'));
+            
+            activeTab.button.classList.add('active');
+            activeTab.content.classList.remove('hidden');
+        }
+
+        // --- Lógica Principal ---
+        
+        fileInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (!file) {
+                idsToProcess = [];
+                fileStatus.textContent = '';
+                return;
+            }
+
+            const columnName = document.getElementById('columnName').value.trim();
+            if (!columnName) {
+                alert('Por favor, preencha o Nome da Coluna com IDs antes de selecionar o arquivo.');
+                fileInput.value = '';
+                return;
+            }
+            
+            fileStatus.textContent = `Lendo '${file.name}'...`;
+            const reader = new FileReader();
+
+            reader.onload = (e) => {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, {type: 'array'});
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    const json = XLSX.utils.sheet_to_json(worksheet);
+
+                    if (json.length > 0 && !json[0].hasOwnProperty(columnName)) {
+                        throw new Error(`A coluna '${columnName}' não foi encontrada no arquivo.`);
+                    }
+                    
+                    idsToProcess = json.map(row => row[columnName]).filter(id => id !== null && id !== undefined).map(String);
+                    fileStatus.textContent = `✅ ${idsToProcess.length} IDs carregados de '${file.name}'.`;
+                } catch (err) {
+                    fileStatus.textContent = `❌ Erro ao ler o arquivo: ${err.message}`;
+                    idsToProcess = [];
+                }
+            };
+            
+            reader.onerror = () => {
+                 fileStatus.textContent = `❌ Erro ao ler o arquivo.`;
+                 idsToProcess = [];
+            };
+
+            reader.readAsArrayBuffer(file);
+        });
+        
+        startButton.addEventListener('click', async () => {
+            if (isRunning) return;
+            
+            const userName = document.getElementById('userName').value.trim();
+            const webhookUrl = document.getElementById('webhookUrl').value.trim();
+            const templateId = document.getElementById('templateId').value.trim();
+            
+            if (!userName || !webhookUrl || !templateId || idsToProcess.length === 0) {
+                alert('Por favor, preencha todos os campos obrigatórios (*) e carregue um arquivo de IDs.');
+                return;
+            }
+            
+            let accountName = 'N/A';
+            try {
+                accountName = new URL(webhookUrl).hostname.split('.')[0];
+            } catch (e) {
+                console.warn("Não foi possível extrair o nome da conta do URL do webhook.");
+            }
+            
+            let finalIds = [...idsToProcess];
+            const skipCount = parseInt(document.getElementById('skipItems').value, 10) || 0;
+
+            if (skipCount > 0) {
+                if (skipCount >= finalIds.length) {
+                    alert(`O número de itens a pular (${skipCount}) é maior ou igual ao total de IDs (${finalIds.length}). Nada será processado.`);
+                    return;
+                }
+                finalIds = finalIds.slice(skipCount);
+            }
+            
+            const totalToProcess = finalIds.length;
+            if (totalToProcess === 0) {
+                alert("Nenhum ID restante para processar após pular os itens.");
+                return;
+            }
+
+            // Resetar estado
+            simpleLogs = [];
+            detailedLogs = [];
+            simpleLogArea.value = '';
+            detailedLogArea.value = '';
+            stopProcess = false;
+            toggleForm(false);
+            downloadSimpleLogsBtn.disabled = false;
+            downloadDetailedLogsBtn.disabled = false;
+            progressSection.classList.remove('hidden');
+            startTime = Date.now();
+            
+            const entityType = document.getElementById('entityType').value;
+            const batchSize = parseInt(document.getElementById('batchSize').value);
+            const sleepTime = parseFloat(document.getElementById('sleepTime').value) * 1000;
+
+            updateProgress(0, totalToProcess);
+            statusText.textContent = "Iniciando o processo...";
+            const now = new Date().toLocaleString('pt-BR');
+            
+            const initialLog = `O usuário '${userName}' iniciou o processamento para ${totalToProcess} IDs na conta '${accountName}' (pulando os ${skipCount} primeiros) da entidade '${entityType}' com o workflow ID '${templateId}' na data de ${now}.`;
+            logMessage(initialLog, 'SYSTEM');
+            logMessage(`Configurações: Tamanho do Lote=${batchSize}, Pausa=${sleepTime/1000}s.`, 'SYSTEM');
+
+            let processedCount = 0;
+            for (let i = 0; i < totalToProcess; i += batchSize) {
+                if (stopProcess) {
+                    logMessage('Processo interrompido pelo sistema devido a erro crítico.', 'CRITICAL');
+                    statusText.textContent = "Processo Interrompido por Erro Crítico.";
+                    break;
+                }
+
+                const batchIds = finalIds.slice(i, i + batchSize);
+                const batchNumber = (i / batchSize) + 1;
+                const totalBatches = Math.ceil(totalToProcess / batchSize);
+                
+                statusText.textContent = `Processando lote ${batchNumber} de ${totalBatches}...`;
+                
+                const documentType = { 'LEAD': 'CCrmDocumentLead', 'DEAL': 'CCrmDocumentDeal', 'CONTACT': 'CCrmDocumentContact', 'COMPANY': 'CCrmDocumentCompany' }[entityType];
+                const documentPrefix = `${entityType}_`;
+                const commands = {};
+                for (const entityId of batchIds) {
+                    commands[`start_wf_${entityId}`] = `bizproc.workflow.start?TEMPLATE_ID=${templateId}&DOCUMENT_ID[0]=crm&DOCUMENT_ID[1]=${documentType}&DOCUMENT_ID[2]=${documentPrefix}${entityId}`;
+                }
+                const payload = { halt: 0, cmd: commands };
+
+                try {
+                    const response = await fetch(`${webhookUrl}batch`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (!response.ok) {
+                         throw new Error(`Erro de rede: ${response.status} ${response.statusText}`);
+                    }
+                    
+                    const resultString = JSON.stringify(result);
+                    if (resultString.includes('insufficient_scope')) {
+                        logMessage('ERRO CRÍTICO: Permissões insuficientes (insufficient_scope). O webhook precisa da permissão "Workflows" (bizproc).', 'CRITICAL', { payload, response: result });
+                        stopProcess = true;
+                        scopeErrorModal.classList.remove('hidden');
+                    } else if (resultString.includes('OPERATION_TIME_LIMIT')) {
+                        logMessage('ERRO CRÍTICO: OPERATION_TIME_LIMIT detectado. O processo será interrompido.', 'CRITICAL', { payload, response: result });
+                        stopProcess = true;
+                        timeLimitErrorModal.classList.remove('hidden');
+                    } else if (result.result && result.result.result_error && Object.keys(result.result.result_error).length > 0) {
+                         logMessage(`Erros retornados no lote ${batchNumber}.`, 'WARN', { payload, response: result });
+                    } else {
+                        logMessage(`Lote ${batchNumber} processado com sucesso.`, 'SUCCESS', { payload, response: result });
+                    }
+
+                } catch (err) {
+                    logMessage(`Falha ao enviar o lote ${batchNumber}: ${err.message}`, 'ERROR', { payload });
+                    statusText.textContent = `Erro de conexão no lote ${batchNumber}.`;
+                }
+
+                processedCount += batchIds.length;
+                updateProgress(processedCount, totalToProcess);
+                
+                if (!stopProcess) await new Promise(resolve => setTimeout(resolve, sleepTime));
+            }
+
+            if (!stopProcess) {
+                statusText.textContent = "Processamento concluído!";
+                logMessage('Todos os lotes foram enviados.', 'SYSTEM');
+            }
+            toggleForm(true);
+        });
+
+        // --- Lógica da Interface ---
+        
+        const tabs = [
+            { button: tabStatusBtn, content: statusContent },
+            { button: tabSimpleLogsBtn, content: simpleLogsContent },
+            { button: tabDetailedLogsBtn, content: detailedLogsContent }
+        ];
+
+        tabs.forEach(tab => {
+            tab.button.addEventListener('click', () => switchTab(tab));
+        });
+        
+        function downloadLog(logContent, fileName) {
+            const blob = new Blob([logContent], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            const timestamp = new Date().toISOString().slice(0, 19).replace('T', '_').replace(/:/g, '-');
+            a.href = url;
+            a.download = `${fileName}_${timestamp}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+        
+        downloadSimpleLogsBtn.addEventListener('click', () => downloadLog(simpleLogs.join('\n'), 'log_simplificado'));
+        downloadDetailedLogsBtn.addEventListener('click', () => downloadLog(detailedLogs.join(''), 'log_detalhado'));
+        
+        closeTimeLimitErrorModal.addEventListener('click', () => {
+            timeLimitErrorModal.classList.add('hidden');
+        });
+
+        closeScopeErrorModal.addEventListener('click', () => {
+            scopeErrorModal.classList.add('hidden');
+        });
+
+    </script>
+</body>
+</html>
